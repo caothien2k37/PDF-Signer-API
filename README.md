@@ -1,4 +1,8 @@
 # PDF Signer API
+Add thư viện
+cd PdfSignerApi
+dotnet add package itextsharp --version 5.5.13.3
+dotnet add package BouncyCastle --version 1.8.9
 
 API ký số PDF hỗ trợ hai phương thức ký:
 1. Ký bằng USB Token
@@ -20,82 +24,17 @@ API ký số PDF hỗ trợ hai phương thức ký:
 
 - .NET 8.0 hoặc cao hơn
 - USB Token driver (nếu sử dụng USB Token)
-- Git
+- Không có USB Token
+  # B1. Tạo private key
+  openssl genrsa -out fake-key.pem 2048
 
-## Cài đặt và chạy local
+  # B2. Tạo chứng thư tự ký (self-signed)
+  openssl req -new -x509 -key fake-key.pem -out fake-cert.pem -days 3650 -subj "/CN=Fake Token Tester"
 
-1. Clone repository:
-```bash
-git clone <repository-url>
-cd PdfSignerApi
-```
+  # B3. Gộp thành 1 file .pfx
+  openssl pkcs12 -export -inkey fake-key.pem -in fake-cert.pem -out fake-token.pfx -password pass:123456
 
-2. Khôi phục các packages:
-```bash
-dotnet restore
-```
 
-3. Build project:
-```bash
-dotnet build
-```
-
-4. Chạy project:
-```bash
-dotnet run
-```
-
-API sẽ chạy tại:
-- HTTP: http://localhost:5000
-- HTTPS: https://localhost:5001
-
-## Đẩy code lên Git
-
-1. Khởi tạo Git repository (nếu chưa có):
-```bash
-git init
-```
-
-2. Tạo file .gitignore:
-```bash
-# .NET Core
-bin/
-obj/
-*.user
-*.suo
-*.vs/
-.vscode/
-
-# Temporary files
-*.tmp
-*.log
-
-# Environment files
-*.env
-appsettings.*.json
-!appsettings.json
-!appsettings.Development.json
-```
-
-3. Thêm files vào staging:
-```bash
-git add .
-```
-
-4. Commit các thay đổi:
-```bash
-git commit -m "Initial commit: PDF Signer API"
-```
-
-5. Thêm remote repository (nếu chưa có):
-```bash
-git remote add origin <repository-url>
-```
-
-6. Push code lên repository:
-```bash
-git push -u origin main
-```
 
 ## Cấu trúc Project
 
@@ -144,23 +83,14 @@ Content-Type: multipart/form-data
 - location: Địa điểm ký
 - pageNumber: Số trang cần ký (mặc định: 1)
 - llx, lly, urx, ury: Tọa độ chữ ký (tùy chọn)
-```
 
-## Phát triển
-
-1. Fork repository này
-2. Tạo branch mới cho tính năng: `git checkout -b feature/ten-tinh-nang`
-3. Commit các thay đổi: `git commit -am 'Thêm tính năng mới'`
-4. Push lên branch: `git push origin feature/ten-tinh-nang`
-5. Tạo Pull Request
-
-## Lưu ý bảo mật
-
-- KHÔNG commit các file chứng chỉ số (.pfx)
-- KHÔNG commit các file cấu hình chứa thông tin nhạy cảm
-- Sử dụng biến môi trường cho các thông tin nhạy cảm
-- Kiểm tra kỹ file .gitignore trước khi commit
-
-## Hỗ trợ
-
-Nếu bạn gặp vấn đề hoặc có câu hỏi, vui lòng tạo issue trong repository. # PDF-Signer-API
+- Curl test : 
+curl --location 'http://localhost:5000/api/sign-pdf/pfx' \
+--header 'Accept: */*' \
+--form 'pdfFile=@"/Users/thiencx2k37/Documents/PdfSignerApi/Fake_data/File_PDF_test.pdf"' \
+--form 'pfxFile=@"/Users/thiencx2k37/Documents/PdfSignerApi/Fake_data/fake-token.pfx"' \
+--form 'pfxPassword="123456"' \
+--form 'reason="Test Ký Số"' \
+--form 'location="Thiencx"' \
+--form 'signatureImage=@"/Users/thiencx2k37/Documents/PdfSignerApi/Fake_data/image.png"' \
+--form 'pageNumber="1"'
