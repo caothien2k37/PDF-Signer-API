@@ -37,6 +37,16 @@ public class SignPdfRequest
     public int PageNumber { get; set; } = 1;
     
     /// <summary>
+    /// Chiều rộng mặc định của khung chữ ký
+    public float? Width { get; set; }
+    
+    /// <summary>
+    /// Chieều cao mặc định của khung chữ ký
+    public float? Height { get; set; }
+    
+    public string? Position { get; set; }
+    
+    /// <summary>
     /// Tọa độ X góc trái dưới của chữ ký
     /// </summary>
     [Range(0, float.MaxValue, ErrorMessage = "Tọa độ phải là số dương")]

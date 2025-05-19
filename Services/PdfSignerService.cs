@@ -165,49 +165,47 @@ public class PdfSignerService : IPdfSignerService
 
             // Tính toán kích thước và vị trí chữ ký
             var pageSize = reader.GetPageSize(request.PageNumber);
-            const float width = 200;  // Chiều rộng mặc định của khung chữ ký
-            const float height = 100; // Chiều cao mặc định của khung chữ ký
 
             // Xác định vị trí chữ ký
-            var signatureRect = request.Llx.HasValue && request.Lly.HasValue && 
-                              request.Urx.HasValue && request.Ury.HasValue
-                ? new Rectangle(request.Llx.Value, request.Lly.Value, request.Urx.Value, request.Ury.Value)
-                : new Rectangle(
-                    pageSize.GetRight(width + 50),
-                    pageSize.GetBottom(height + 20),
-                    pageSize.GetRight(50),
-                    pageSize.GetBottom(20)
-                );
-
-            // Cấu hình hiển thị chữ ký
-            appearance.Reason = request.Reason;
-            appearance.Location = request.Location;
-            appearance.Layer2Text = string.Empty;
-
-            // Xử lý ảnh chữ ký nếu có
-            if (signatureImagePath != null)
+            /*Llx: Toạ độ X của góc trái dưới khung chữ ký trên trang PDF.
+               Lly: Toạ độ Y của góc trái dưới khung chữ ký.
+               Urx: Toạ độ X của góc phải trên khung chữ ký.
+               Ury: Toạ độ Y của góc phải trên khung chữ ký.*/
+            if (request is { Llx: not null, Lly: not null, Urx: not null, Ury: not null})
             {
-                var image = Image.GetInstance(signatureImagePath);
-                var sigWidth = signatureRect.Width;
-                var sigHeight = signatureRect.Height;
-                image.ScaleToFit(sigWidth - 10, sigHeight - 30);
-                image.Alignment = Element.ALIGN_CENTER;
+                var signatureRect = new Rectangle(request.Llx.Value, request.Lly.Value, request.Urx.Value, request.Ury.Value);
 
-                appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.GRAPHIC_AND_DESCRIPTION;
-                appearance.SignatureGraphic = image;
+                // Cấu hình hiển thị chữ ký
+                appearance.Reason = request.Reason;
+                appearance.Location = request.Location;
+                appearance.Layer2Text = $"Người ký: {cert.SubjectName.Name}\n" +
+                                        $"Thời gian: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\n" +
+                                        $"Lý do: {request.Reason}\n" +
+                                        $"Địa điểm: {request.Location}";
+
+                // Xử lý ảnh chữ ký nếu có
+                if (signatureImagePath != null)
+                {
+                    var image = Image.GetInstance(signatureImagePath);
+                    var sigWidth = signatureRect.Width;
+                    var sigHeight = signatureRect.Height;
+                    image.ScaleToFit(sigWidth - 10, sigHeight - 30);
+                    image.Alignment = Element.ALIGN_CENTER;
+
+                    appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.GRAPHIC_AND_DESCRIPTION;
+                    appearance.SignatureGraphic = image;
+                }
+                else
+                {
+                    appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.NAME_AND_DESCRIPTION;
+                }
+
+                appearance.SetVisibleSignature(signatureRect, request.PageNumber, $"sig_page_{request.PageNumber}");
             }
             else
             {
-                appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.NAME_AND_DESCRIPTION;
+                throw new Exception($"Vui lòng kiem tra lại các thông số vị trí chữ ký: Llx, Lly, Urx, Ury");
             }
-
-            // Thiết lập thông tin hiển thị
-            appearance.Layer2Text = $"Người ký: {cert.SubjectName.Name}\n" +
-                                  $"Thời gian: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\n" +
-                                  $"Lý do: {request.Reason}\n" +
-                                  $"Địa điểm: {request.Location}";
-
-            appearance.SetVisibleSignature(signatureRect, request.PageNumber, $"sig_page_{request.PageNumber}");
 
             try
             {
